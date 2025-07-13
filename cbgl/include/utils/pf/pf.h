@@ -195,17 +195,8 @@ void pf_get_cluster(pf_t *pf, int clabel, pf_sample_set_t *c_cluster);
 int pf_get_cluster_stats(pf_t *pf, int cluster, double *weight,
                          pf_vector_t *mean, pf_matrix_t *cov);
 
-// Get statistics on a subset of a particular cluster.
-// These are calculated based on the upper `percentage` x 100 of the
-// population of `pf`.
-// ADDED BY li9i, 19/03.2019
-int pf_get_cluster_subset_stats(pf_t *pf, int clabel, double *weight,
-  pf_vector_t *mean, pf_matrix_t *cov, double percentage,
-  pf_sample_set_t *ret_subset);
-
 // Re-compute the cluster statistics for a sample set
 void pf_cluster_stats(pf_t *pf, pf_sample_set_t *set);
-
 
 // Display the sample set
 void pf_draw_samples(pf_t *pf, struct _rtk_fig_t *fig, int max_samples);
@@ -225,16 +216,6 @@ int pf_update_converged(pf_t *pf);
 
 //sets the current set and pf converged values to zero
 void pf_init_converged(pf_t *pf);
-
-// Used to compare two `pf_sample_set_sort_str_t` structures by weight in
-// descending order
-// ADDED BY li9i, 19/03.2019
-int pf_compare_samples_by_weight_desc(const void *str_a, const void *str_b);
-
-// Used to compare two `pf_sample_set_sort_str_t` structures by weight in
-// descending order
-// ADDED BY li9i 13/05/2019
-int pf_compare_samples_by_weight_asc(const void *str_a, const void *str_b);
 
 #ifdef __cplusplus
 }
