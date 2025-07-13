@@ -1,0 +1,10 @@
+cbgl - Globally localise your 2D LIDAR in a 2D map in no time
+
+This project is primarily licensed under the MIT License. See LICENSE.MIT for full terms.
+
+Third-party components are included under the following licenses:
+
+- Portions of the code in `{include,src}/utils/map` and `{include,src}/utils/pf` are licensed under the GNU Lesser General Public License (LGPL) version 2.1. See COPYING.LGPL.
+- Code under `include/utils/range_libc` is licensed under the Apache License 2.0. See LICENSE.APACHE.
+
+You must comply with the terms of these licenses when redistributing or modifying this software.

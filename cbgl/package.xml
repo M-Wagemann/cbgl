@@ -2,11 +2,11 @@
 <package format="2">
   <name>cbgl</name>
   <version>1.0.1</version>
-  <description>The Caer-Based Global Localisation package</description>
+  <description>The CAER-Based Global Localisation package</description>
 
   <maintainer email="alefilot@auth.gr">li9i</maintainer>
 
-  <license>TODO</license>
+  <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 

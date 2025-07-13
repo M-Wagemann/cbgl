@@ -1,3 +1,10 @@
+/*
+ * fsm - [IROS'22] Obtain robust odometry from your noisy panoramic 2D LIDAR
+ *
+ * Copyright (c) 2022 Alexandros PHILOTHEOU
+ *
+ * Licensed under the MIT License.
+ */
 #ifndef FSM_H
 #define FSM_H
 
