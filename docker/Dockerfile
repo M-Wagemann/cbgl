@@ -30,7 +30,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # ------------------------------------------------------------------------------
 # Create new user and home directory
 # https://roboticseabass.com/2023/07/09/updated-guide-docker-and-ros2/
-ARG USER=cbgl
+ENV USER=cbgl
 RUN useradd --create-home ${USER}                                           && \
     echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER}         && \
     chmod 0440 /etc/sudoers.d/${USER}                                       && \
@@ -59,10 +59,10 @@ RUN cd /home/${USER}/catkin_ws && \
 # ------------------------------------------------------------------------------
 # The next five lines + the entrypoint command will make sure that
 # when the container is run the cbgl node is roslaunched immediately
-RUN echo "#!/bin/bash" > /home/${USER}/cbgl_launch.sh
-RUN echo "source /opt/ros/kinetic/setup.bash" >> /home/${USER}/cbgl_launch.sh
+RUN echo "#!/bin/bash"                                      > /home/${USER}/cbgl_launch.sh
+RUN echo "source /opt/ros/kinetic/setup.bash"              >> /home/${USER}/cbgl_launch.sh
 RUN echo "source /home/${USER}/catkin_ws/devel/setup.bash" >> /home/${USER}/cbgl_launch.sh
-RUN echo "roslaunch cbgl cbgl.launch" >> /home/${USER}/cbgl_launch.sh
+RUN echo "roslaunch cbgl cbgl.launch"                      >> /home/${USER}/cbgl_launch.sh
 RUN chmod +x /home/${USER}/cbgl_launch.sh
 # ------------------------------------------------------------------------------
 USER root

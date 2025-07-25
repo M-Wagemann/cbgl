@@ -11,11 +11,6 @@ services:
     tty: true
     network_mode: "host"
     ipc: host
-
-    environment:
-      - DISPLAY=${DISPLAY}
-
+    user: cbgl
     volumes:
-      - ./cbgl:/home/cbgl/catkin_ws/src/cbgl/
-
-    user: ${USERNAME:-cbgl}
+      - ../cbgl:/home/cbgl/catkin_ws/src/cbgl/
