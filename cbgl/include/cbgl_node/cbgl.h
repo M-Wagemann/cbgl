@@ -45,7 +45,7 @@
 #include <utils/fsm_core.h>
 #include "utils/map/map.h"
 #include "utils/pf/pf.h"
-#include <csm/csm_all.h>  // csm defines min and max, but Eigen complains
+#include <csm/csm_all.h>  /* csm defines min and max, but Eigen complains */
 #include <egsl/egsl_macros.h>
 
 #undef min
@@ -65,28 +65,28 @@ class CBGL
 
   private:
 
-    // **** ros
+    /* **** ros */
 
     ros::NodeHandle nh_;
     ros::NodeHandle nh_private_;
 
-    // subscribers
+    /* subscribers */
     ros::Subscriber scan_subscriber_;
     ros::Subscriber map_subscriber_;
 
-    // services
+    /* services */
     ros::ServiceServer global_localisation_service_;
 
     tf::TransformListener tf_listener_;
     tf::TransformBroadcaster tf_broadcaster_;
 
-    // static, cached
+    /* static, cached */
     tf::Transform base_to_laser_;
 
-    // static, cached, calculated from base_to_laser_
+    /* static, cached, calculated from base_to_laser_ */
     tf::Transform laser_to_base_;
 
-    // publishers
+    /* publishers */
     ros::Publisher global_pose_publisher_;
     ros::Publisher execution_time_publisher_;
     ros::Publisher best_particle_publisher_;
@@ -96,7 +96,7 @@ class CBGL
     ros::Publisher world_scan_publisher_;
     ros::Publisher map_scan_publisher_;
 
-    // **** parameters
+    /* **** parameters */
 
     std::string base_frame_id_;
     std::string fixed_frame_id_;
@@ -112,7 +112,7 @@ class CBGL
     bool do_undersample_scan_;
     int undersample_rate_;
 
-    // cache a scan's number of rays
+    /* cache a scan's number of rays */
     unsigned int nrays_;
     int sgn_;
     double angle_min_;
@@ -120,26 +120,26 @@ class CBGL
     double map_res_;
     unsigned int map_hgt_;
 
-    // For generating the hypothesis set H
+    /* For generating the hypothesis set H */
     pf_t *pf_hyp_;
     map_t* map_hyp_;
 
-    // How to scanMap the map?
+    /* How to scanMap the map? */
     std::string map_scan_method_;
 
     bool do_icp_;
     bool do_fsm_;
 
-    // FSM Params
+    /* FSM Params */
     FSM::input_params ip_;
 
-    // Forward plan (DFT)
+    /* Forward plan (DFT) */
     fftw_plan r2rp_;
 
-    // Backward plan (IDFT)
+    /* Backward plan (IDFT) */
     fftw_plan c2rp_;
 
-    // Covariance params
+    /* Covariance params */
     double initial_cov_xx_;
     double initial_cov_yy_;
     double initial_cov_aa_;
@@ -150,27 +150,27 @@ class CBGL
     bool running_;
     bool received_start_signal_;
 
-    // fixed-to-base tf (pose of base frame in fixed frame)
+    /* fixed-to-base tf (pose of base frame in fixed frame) */
     tf::Transform f2b_;
 
-    // the map
+    /* the map */
     nav_msgs::OccupancyGrid map_;
 
-    // The map converted to a suitable structure for 3rd-party lib ray-casting
+    /* The map converted to a suitable structure for 3rd-party lib ray-casting */
     ranges::OMap omap_;
 
-    // 3rd-party ray-casters (range_libc)
+    /* 3rd-party ray-casters (range_libc) */
     ranges::RayMarching rm_;
     ranges::CDDTCast cddt_;
     ranges::BresenhamsLine br_;
 
-    // The world scan received latest
+    /* The world scan received latest */
     sensor_msgs::LaserScan::Ptr latest_world_scan_;
 
     sm_params input_;
     sm_result output_;
 
-    // Crucial CBGL params
+    /* Crucial CBGL params */
     std::vector<geometry_msgs::Pose::Ptr> dispersed_particles_;
     int dl_;
     int da_;
@@ -178,7 +178,6 @@ class CBGL
     bool publish_pose_sets_;
 
 
-    // **** methods
 
     /***************************************************************************
      * @brief Broadcasts the estimated pose as the odom<--map transform
@@ -188,7 +187,7 @@ class CBGL
 
     /***************************************************************************
      * @brief Calculation of the cumulative absolute error per ray metric
-    */
+     */
     double caer(const sensor_msgs::LaserScan::Ptr& sr,
       const sensor_msgs::LaserScan::Ptr& sv);
     double caer(const std::vector<float>& sr,
@@ -492,4 +491,4 @@ class CBGL
     void wrapPoseOrientation(geometry_msgs::Pose::Ptr& pose);
 };
 
-#endif // CBGL_H
+#endif  /* CBGL_H */
