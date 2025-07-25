@@ -73,16 +73,12 @@ class CBGL
     // subscribers
     ros::Subscriber scan_subscriber_;
     ros::Subscriber map_subscriber_;
-    ros::Subscriber pose_cloud_subscriber_;
-    ros::Subscriber odom_subscriber_;
-    ros::Subscriber ground_truth_subscriber_;
 
     // services
     ros::ServiceServer global_localisation_service_;
 
     tf::TransformListener tf_listener_;
     tf::TransformBroadcaster tf_broadcaster_;
-    tf::StampedTransform map_to_base_tf_;
 
     // static, cached
     tf::Transform base_to_laser_;
@@ -128,34 +124,8 @@ class CBGL
     pf_t *pf_hyp_;
     map_t* map_hyp_;
 
-    bool publish_pose_with_covariance_stamped_;
-
-    std::vector<double> position_covariance_;
-    std::vector<double> orientation_covariance_;
-
-    // Parameters introduced by us
-    bool feedback_init_pf_;
-    std::string feedback_particle_topic_;
-    int map_scan_theta_disc_;
-
-    // ICP variables introduced by us
-    int icp_iterations_;
-    bool icp_incorporate_orientation_only_;
-    bool icp_provide_initial_guess_;
+    // How to scanMap the map?
     std::string map_scan_method_;
-    bool icp_do_fill_map_scan_;
-    int icp_scan_undersample_rate_;
-    bool icp_do_clip_scans_;
-    double icp_clip_sill_;
-    double icp_clip_lintel_;
-    double icp_fill_mean_value_;
-    double icp_fill_std_value_;
-    bool icp_do_invalidate_diff_rays_;
-    double icp_invalidate_diff_rays_epsilon_;
-
-    // DFT variables introduced by us
-    bool icp_visual_debug_;
-    bool icp_do_publish_scans_;
 
     bool do_icp_;
     bool do_fsm_;
@@ -174,15 +144,10 @@ class CBGL
     double initial_cov_yy_;
     double initial_cov_aa_;
 
-    // **** state variables
-
-    boost::mutex mutex_;
-
     bool received_scan_;
     bool received_map_;
     bool received_pose_cloud_;
     bool running_;
-    int received_both_scan_and_map_;
     bool received_start_signal_;
 
     // fixed-to-base tf (pose of base frame in fixed frame)
@@ -202,16 +167,11 @@ class CBGL
     // The world scan received latest
     sensor_msgs::LaserScan::Ptr latest_world_scan_;
 
-    std::vector<double> a_cos_;
-    std::vector<double> a_sin_;
-
     sm_params input_;
     sm_result output_;
 
-    ros::Time ground_truths_latest_received_time_;
-
+    // Crucial CBGL params
     std::vector<geometry_msgs::Pose::Ptr> dispersed_particles_;
-
     int dl_;
     int da_;
     int top_k_caers_;
@@ -219,7 +179,6 @@ class CBGL
 
 
     // **** methods
-
 
     /***************************************************************************
      * @brief Broadcasts the estimated pose as the odom<--map transform
@@ -273,33 +232,6 @@ class CBGL
       const std::string& filename);
 
     /***************************************************************************
-     * @brief Copies a source LDP structure to a target one.
-     * @param[in] source [const LDP&] The source structure
-     * @param[out] target [LDP&] The destination structure
-     * @return void
-     */
-    void copyLDP(const LDP& source, LDP& target);
-
-    /***************************************************************************
-     * @brief Regarding a single ray with index id, this function copies data
-     * from a ray of the source LDP structure to that of a target one.
-     * @param[in] source [const LDP&] The source structure
-     * @param[out] target [LDP&] The destination structure
-     * @param[in] id [const int&] The ray index
-     * @return void
-     */
-    void copyRayDataLDP(const LDP& source, LDP& target, const int& id);
-
-    /***************************************************************************
-     * @brief Regarding the metadata from a source LDP, copy them to a
-     * a target LDP.
-     * @param[in] source [const LDP&] The source structure
-     * @param[out] target [LDP&] The destination structure
-     * @return void
-     */
-    void copyMetaDataLDP(const LDP& source, LDP& target);
-
-    /***************************************************************************
      * @brief This function uses the icp result for correcting the amcl pose.
      * Given the icp output, this function express this correction in the
      * map frame. The result is the icp-corrected pose in the map frame.
@@ -347,10 +279,6 @@ class CBGL
     void doICP(const geometry_msgs::Pose::Ptr& amcl_pose_msg,
       const sensor_msgs::LaserScan::Ptr& latest_world_scan,
       sm_result* output, tf::Transform* f2b);
-
-    /***************************************************************************
-    */
-    void dumpScan(const LDP& real_scan, const LDP& virtual_scan);
 
     /***************************************************************************
      * @brief Extracts the yaw component from the input pose's quaternion.
@@ -425,12 +353,6 @@ class CBGL
       LDP& ldp);
 
     /***************************************************************************
-     */
-    void ldp2points(const LDP& scan,
-      const std::tuple<double,double,double> pose,
-      std::vector< std::pair<double,double> >* points);
-
-    /***************************************************************************
      * @brief Converts a LDP structure to a LaserScan laser scan
      * @param[in] ldp [const LDP&] The input LDP laser scan
      * @return [sensor_msgs::LaserScan::Ptr] The output LaserScan laser scan
@@ -442,7 +364,7 @@ class CBGL
      * @param[in] map_msg [const nav_msgs::OccupancyGrid] The map
      * @return void
      */
-    void mapCallback (const nav_msgs::OccupancyGrid& map);
+    void mapCallback(const nav_msgs::OccupancyGrid& map);
 
     /***************************************************************************
      * @brief Publishes the pipeline's latest execution time.
@@ -512,7 +434,7 @@ class CBGL
      * scan message
      * @return void
      */
-    void scanCallback (const sensor_msgs::LaserScan::Ptr& scan_msg);
+    void scanCallback(const sensor_msgs::LaserScan::Ptr& scan_msg);
 
     /***************************************************************************
      * @brief Given the robot's pose and a choice to scan over an angle of 2π,
@@ -555,14 +477,6 @@ class CBGL
     static pf_vector_t uniformPoseGenerator(void* arg);
 
     /***************************************************************************
-     * @brief Visualisation of world and map scans
-     * @param[in] world_scan [const LDP&] The world scan in LDP form
-     * @param[in] map_scan [const LDP&] The map scan in LDP form
-     * @return void
-     */
-    void visualiseScans(const LDP& world_scan, const LDP& map_scan);
-
-    /***************************************************************************
      * @brief Wraps an angle in the [-π, π] interval
      * @param[in,out] angle [double&] The angle to be expressed in [-π,π]
      * @return void
@@ -575,8 +489,7 @@ class CBGL
      * pose whose input will be wrapped in [-π,π]
      * @return void
      */
-    void wrapPoseOrientation(
-      geometry_msgs::Pose::Ptr& pose);
+    void wrapPoseOrientation(geometry_msgs::Pose::Ptr& pose);
 };
 
 #endif // CBGL_H

@@ -1,13 +1,10 @@
 services:
-
   cbgl:
-
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
 
     image: li9i/cbgl:latest
-
     container_name: cbgl_container
 
     stdin_open: true
@@ -19,6 +16,6 @@ services:
       - DISPLAY=${DISPLAY}
 
     volumes:
-      - ./cbgl:/home/user_cbgl/catkin_ws/src/cbgl/
+      - ./cbgl:/home/cbgl/catkin_ws/src/cbgl/
 
-    user: ${USERNAME:-user_cbgl}
+    user: ${USERNAME:-cbgl}

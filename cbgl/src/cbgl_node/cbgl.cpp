@@ -38,8 +38,7 @@ CBGL::CBGL(
   angle_inc_(0.0),
   map_res_(0.0),
   map_hgt_(0.0),
-  top_k_caers_(10),
-  ground_truths_latest_received_time_ (ros::Time::now())
+  top_k_caers_(10)
 {
   // **** init parameters
   initParams();
@@ -329,75 +328,6 @@ void CBGL::convertMapToPNG(
 }
 
 /*******************************************************************************
- * @brief Copies a source LDP structure to a target one.
- * @param[in] source [const LDP&] The source structure
- * @param[out] target [LDP&] The destination structure
- * @return void
- */
-  void
-CBGL::copyLDP(
-  const LDP& source,
-  LDP& target)
-{
-  unsigned int n = source->nrays;
-  target = ld_alloc_new(n);
-
-  copyMetaDataLDP(source, target);
-
-  for (unsigned int i = 0; i < n; i++)
-    copyRayDataLDP(source, target, i);
-}
-
-/*******************************************************************************
- * @brief Regarding a single ray with index id, this function copies data
- * from a ray of the source LDP structure to that of a target one.
- * @param[in] source [const LDP&] The source structure
- * @param[out] target [LDP&] The destination structure
- * @param[in] id [const int&] The ray index
- * @return void
- */
-  void
-CBGL::copyRayDataLDP(
-  const LDP& source,
-  LDP& target,
-  const int& id)
-{
-  target->valid[id] = source->valid[id];
-  target->theta[id] = source->theta[id];
-  target->cluster[id]  = source->cluster[id];
-  target->readings[id] = source->readings[id];
-}
-
-/*******************************************************************************
- * @brief Regarding the metadata from a source LDP, copy them to a
- * a target LDP.
- * @param[in] source [const LDP&] The source structure
- * @param[out] target [LDP&] The destination structure
- * @return void
- */
-  void
-CBGL::copyMetaDataLDP(
-  const LDP& source,
-  LDP& target)
-{
-  target->nrays = source->nrays;
-  target->min_theta = source->min_theta;
-  target->max_theta = source->max_theta;
-
-  target->estimate[0] = source->estimate[0];
-  target->estimate[1] = source->estimate[1];
-  target->estimate[2] = source->estimate[2];
-
-  target->odometry[0] = source->odometry[0];
-  target->odometry[1] = source->odometry[1];
-  target->odometry[2] = source->odometry[2];
-
-  target->true_pose[0] = source->true_pose[0];
-  target->true_pose[1] = source->true_pose[1];
-  target->true_pose[2] = source->true_pose[2];
-}
-
-/*******************************************************************************
  * @brief This function uses the csm_icp result for correcting the amcl pose.
  * Given the icp output, this function express this correction in the
  * map frame. The result is the icp-corrected pose in the map frame.
@@ -603,51 +533,6 @@ CBGL::extractYawFromPose(const geometry_msgs::Pose& pose)
 }
 
 /*******************************************************************************
-*/
-  void
-CBGL::dumpScan(const LDP& real_scan, const LDP& virtual_scan)
-{
-  std::tuple<double,double,double> zero_pose;
-  std::get<0>(zero_pose) = 0.0;
-  std::get<1>(zero_pose) = 0.0;
-  std::get<2>(zero_pose) = 0.0;
-
-  std::vector< std::pair<double,double> > real_scan_points;
-  ldp2points(real_scan, zero_pose, &real_scan_points);
-
-  std::vector< std::pair<double,double> > virtual_scan_points;
-  ldp2points(virtual_scan, zero_pose, &virtual_scan_points);
-
-  std::string dump_filepath =
-    "/home/li9i/catkin_ws/src/cbgl/tmp/scan_dump.m";
-  std::ofstream file(dump_filepath.c_str(), std::ios::trunc);
-
-  if (file.is_open())
-  {
-    file << "rx = [];" << std::endl;
-    file << "ry = [];" << std::endl;
-
-    for (int i = 0; i < real_scan->nrays; i++)
-    {
-      file << "rx = [rx " << real_scan_points[i].first << "];" << std::endl;
-      file << "ry = [ry " << real_scan_points[i].second << "];" << std::endl;
-    }
-
-    file << "vx = [];" << std::endl;
-    file << "vy = [];" << std::endl;
-    for (int i = 0; i < virtual_scan->nrays; i++)
-    {
-      file << "vx = [vx " << virtual_scan_points[i].first << "];" << std::endl;
-      file << "vy = [vy " << virtual_scan_points[i].second << "];" << std::endl;
-    }
-
-    file.close();
-  }
-  else
-    printf("[CBGL] Could not log scans\n");
-}
-
-/*******************************************************************************
  * @brief Calculates the area of the free space of a map
  * @param[in] map [map_t*] Guess what
  * @return [double] Its area
@@ -754,9 +639,6 @@ CBGL::handleInputPose(const geometry_msgs::Pose::Ptr& pose_msg,
 
   // Set status to running to block further execution
   running_ = true;
-
-  // ... and get a lock
-  //boost::mutex::scoped_lock lock(mutex_);
 
   sensor_msgs::LaserScan::Ptr world_scan =
     boost::make_shared<sensor_msgs::LaserScan>(*latest_world_scan_);
@@ -1392,35 +1274,6 @@ CBGL::laserScanToLDP(
   ldp->true_pose[0] = 0.0;
   ldp->true_pose[1] = 0.0;
   ldp->true_pose[2] = 0.0;
-}
-
-/*******************************************************************************
-*/
-  void
-CBGL::ldp2points(
-  const LDP& scan,
-  const std::tuple<double,double,double> pose,
-  std::vector< std::pair<double,double> >* points)
-{
-  points->clear();
-
-  double px = std::get<0>(pose);
-  double py = std::get<1>(pose);
-  double pt = std::get<2>(pose);
-
-  double angle_min = scan->min_theta;
-  double angle_span = 2*fabs(angle_min);
-  int n = scan->nrays;
-
-  for (int i = 0; i < n; i++)
-  {
-    double x =
-      px + scan->readings[i] * cosf(i * angle_span/n + pt + angle_min);
-    double y =
-      py + scan->readings[i] * sinf(i * angle_span/n + pt + angle_min);
-
-    points->push_back(std::make_pair(x,y));
-  }
 }
 
 /*******************************************************************************
@@ -2371,24 +2224,6 @@ CBGL::uniformPoseGenerator(void* arg)
   }
 
   return p;
-}
-
-/*******************************************************************************
- * @brief Visualisation of world and map scans
- * @param[in] world_scan [const LDP&] The world scan in LDP form
- * @param[in] map_scan [const LDP&] The map scan in LDP form
- * @return void
- */
-  void
-CBGL::visualiseScans(
-  const LDP& world_scan,
-  const LDP& map_scan)
-{
-  sensor_msgs::LaserScan world_laser_scan = *ldpTolaserScan(world_scan);
-  sensor_msgs::LaserScan map_laser_scan = *ldpTolaserScan(map_scan);
-
-  world_scan_publisher_.publish(world_laser_scan);
-  map_scan_publisher_.publish(map_laser_scan);
 }
 
 /*******************************************************************************
