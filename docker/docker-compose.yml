@@ -13,4 +13,4 @@ services:
     ipc: host
     user: cbgl
     volumes:
-      - ../cbgl:/home/cbgl/catkin_ws/src/cbgl/
+      - ../cbgl:/home/cbgl/catkin_ws/src/cbgl/:rw

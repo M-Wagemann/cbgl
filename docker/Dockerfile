@@ -26,36 +26,27 @@ RUN apt-get install -y \
       ros-kinetic-map-server
 # ------------------------------------------------------------------------------
 # Use bash and create user
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-# ------------------------------------------------------------------------------
-# Create new user and home directory
 # https://roboticseabass.com/2023/07/09/updated-guide-docker-and-ros2/
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 ENV USER=cbgl
 RUN useradd --create-home ${USER}                                           && \
     echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER}         && \
     chmod 0440 /etc/sudoers.d/${USER}                                       && \
     mkdir -p /home/${USER}
-# ------------------------------------------------------------------------------
 USER ${USER}
 WORKDIR /home/${USER}
-RUN echo "source /opt/ros/kinetic/setup.bash" >> /home/${USER}/.bashrc
-RUN echo "source /home/${USER}/catkin_ws/devel/setup.bash" >> /home/${USER}/.bashrc
 # ------------------------------------------------------------------------------
-RUN rosdep update
-RUN mkdir -p /home/${USER}/catkin_ws/src && \
-    cd /home/${USER}/catkin_ws/src/
-# ------------------------------------------------------------------------------
+RUN mkdir -p /home/${USER}/catkin_ws/src
 COPY --chown=${USER}:${USER} ../cbgl/ /home/${USER}/catkin_ws/src/cbgl/
+RUN rosdep update
 # ------------------------------------------------------------------------------
-RUN cd /home/${USER}/catkin_ws && \
-    export CC=gcc && \
-    export CXX=g++ && \
-    alias g++='g++ -std=c++11' && \
-    alias clang++='clang++ -std=c++11' && \
-    source /opt/ros/kinetic/setup.bash && \
-    catkin build cbgl && \
-    source /opt/ros/kinetic/setup.bash && \
-    source /home/${USER}/catkin_ws/devel/setup.bash
+RUN cd /home/${USER}/catkin_ws                                              && \
+    export CC=gcc                                                           && \
+    export CXX=g++                                                          && \
+    alias g++='g++ -std=c++11'                                              && \
+    alias clang++='clang++ -std=c++11'                                      && \
+    source /opt/ros/kinetic/setup.bash                                      && \
+    catkin build cbgl
 # ------------------------------------------------------------------------------
 # The next five lines + the entrypoint command will make sure that
 # when the container is run the cbgl node is roslaunched immediately
