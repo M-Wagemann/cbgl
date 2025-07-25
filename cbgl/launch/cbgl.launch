@@ -1,17 +1,21 @@
 <launch>
 
-  <!-- CBGL -->
-  <node pkg="cbgl" type="cbgl_node" name="cbgl_node" output="screen">
+  <arg name="namespace" default="/sfr"/>
 
-    <!-- General parameters -->
-    <rosparam command="load" file="$(find cbgl)/configuration_files/params_cbgl.yaml" />
+  <group ns="$(arg namespace)">
 
-    <!-- CSM parameters (when FOV <= 2π) -->
-    <rosparam command="load" file="$(find cbgl)/configuration_files/params_csm.yaml" />
+    <node pkg="cbgl" type="cbgl_node" name="cbgl_node" output="screen">
 
-    <!-- FSM parameters (when FOV = 2π) -->
-    <rosparam command="load" file="$(find cbgl)/configuration_files/params_fsm.yaml" />
+      <!-- General parameters -->
+      <rosparam command="load" file="$(find cbgl)/configuration_files/params_cbgl.yaml" />
 
-  </node>
+      <!-- CSM parameters (when FOV <= 2π) -->
+      <rosparam command="load" file="$(find cbgl)/configuration_files/params_csm.yaml" />
+
+      <!-- FSM parameters (when FOV = 2π) -->
+      <rosparam command="load" file="$(find cbgl)/configuration_files/params_fsm.yaml" />
+
+    </node>
+  </group>
 
 </launch>
