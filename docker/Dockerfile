@@ -56,5 +56,4 @@ RUN echo "source /home/${USER}/catkin_ws/devel/setup.bash" >> /home/${USER}/cbgl
 RUN echo "roslaunch cbgl cbgl.launch"                      >> /home/${USER}/cbgl_launch.sh
 RUN chmod +x /home/${USER}/cbgl_launch.sh
 # ------------------------------------------------------------------------------
-USER root
 ENTRYPOINT bash /home/${USER}/cbgl_launch.sh
