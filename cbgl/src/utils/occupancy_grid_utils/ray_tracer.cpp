@@ -3,8 +3,8 @@
 #include <boost/ref.hpp>
 #include <boost/foreach.hpp>
 #include <boost/optional.hpp>
-#include <ros/assert.h>
-#include <tf/transform_datatypes.h>
+#include <rclcpp/rclcpp.hpp>
+#include <tf2_ros/transform_datatypes.h>
 #include <utils/occupancy_grid_utils/ray_tracer.h>
 #include <utils/occupancy_grid_utils/exceptions.h>
 
@@ -159,12 +159,12 @@ private:
 
   void transform(const gm::Pose& sensor_pose)
   {
-    tf::Transform pose;
-    tf::poseMsgToTF(sensor_pose, pose);
+    tf2_ros::Transform pose;
+    tf2_ros::poseMsgToTF(sensor_pose, pose);
 
     for (size_t i = 0; i < tf_points_.size(); ++i)
     {
-      tf::pointTFToMsg(pose * tf_points_[i], points_[i]);
+      tf2_ros::pointTFToMsg(pose * tf_points_[i], points_[i]);
     }
   }
 
@@ -190,12 +190,12 @@ private:
       const double sin_angle = sin(angle);
 
       tf_points_.push_back(
-        tf::Point(cos_angle * range_max_, sin_angle * range_max_, 0));
+        tf2_ros::Point(cos_angle * range_max_, sin_angle * range_max_, 0));
     }
   }
 
   std::vector<gm::Point> points_;
-  std::vector<tf::Point> tf_points_;
+  std::vector<tf2_ros::Point> tf_points_;
   double angle_min_;
   double angle_max_;
   double range_max_;

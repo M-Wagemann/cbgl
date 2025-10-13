@@ -1,7 +1,7 @@
 /*
- * cbgl - [IROS'24] Globally localise your 2D LIDAR in a 2D map in no time
+ * cbgl - [Irclcpp'24] Globally localise your 2D LIDAR in a 2D map in no time
  *
- * Copyright (c) 2024 Alexandros PHILOTHEOU
+ * Copyright (c) 2024 Alexandrclcpp PHILOTHEOU
  *
  * Licensed under the MIT License.
  * See LICENSE.MIT for details.
@@ -25,7 +25,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_matrix.h>
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.h>
 #include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Duration.h>
 #include <std_msgs/UInt64.h>
@@ -38,15 +38,15 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Odometry.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_listener.h>
-#include <tf/transform_broadcaster.h>
+#include <tf2_rclcpp/transform_datatypes.h>
+#include <tf2_rclcpp/transform_listener.h>
+#include <tf2_rclcpp/transform_broadcaster.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <utils/fsm_core.h>
 #include "utils/map/map.h"
 #include "utils/pf/pf.h"
 #include <csm/csm_all.h>  /* csm defines min and max, but Eigen complains */
-#include <egsl/egsl_macros.h>
+#include <egsl/egsl_macrclcpp.h>
 
 #undef min
 #undef max
@@ -60,41 +60,41 @@ class CBGL
 {
   public:
 
-    CBGL(ros::NodeHandle nh, ros::NodeHandle nh_private);
+    CBGL(rclcpp::NodeHandle nh, rclcpp::NodeHandle nh_private);
     ~CBGL();
 
   private:
 
-    /* **** ros */
+    /* **** rclcpp */
 
-    ros::NodeHandle nh_;
-    ros::NodeHandle nh_private_;
+    rclcpp::NodeHandle nh_;
+    rclcpp::NodeHandle nh_private_;
 
     /* subscribers */
-    ros::Subscriber scan_subscriber_;
-    ros::Subscriber map_subscriber_;
+    rclcpp::Subscriber scan_subscriber_;
+    rclcpp::Subscriber map_subscriber_;
 
     /* services */
-    ros::ServiceServer global_localisation_service_;
+    rclcpp::ServiceServer global_localisation_service_;
 
-    tf::TransformListener tf_listener_;
-    tf::TransformBroadcaster tf_broadcaster_;
+    tf2_rclcpp::TransformListener tf_listener_;
+    tf2_rclcpp::TransformBroadcaster tf_broadcaster_;
 
     /* static, cached */
-    tf::Transform base_to_laser_;
+    tf2_rclcpp::Transform base_to_laser_;
 
     /* static, cached, calculated from base_to_laser_ */
-    tf::Transform laser_to_base_;
+    tf2_rclcpp::Transform laser_to_base_;
 
     /* publishers */
-    ros::Publisher global_pose_publisher_;
-    ros::Publisher execution_time_publisher_;
-    ros::Publisher best_particle_publisher_;
-    ros::Publisher all_hypotheses_publisher_ ;
-    ros::Publisher all_hypotheses_caer_publisher_ ;
-    ros::Publisher top_caer_hypotheses_publisher_ ;
-    ros::Publisher world_scan_publisher_;
-    ros::Publisher map_scan_publisher_;
+    rclcpp::Publisher global_pose_publisher_;
+    rclcpp::Publisher execution_time_publisher_;
+    rclcpp::Publisher best_particle_publisher_;
+    rclcpp::Publisher all_hypotheses_publisher_ ;
+    rclcpp::Publisher all_hypotheses_caer_publisher_ ;
+    rclcpp::Publisher top_caer_hypotheses_publisher_ ;
+    rclcpp::Publisher world_scan_publisher_;
+    rclcpp::Publisher map_scan_publisher_;
 
     /* **** parameters */
 
@@ -150,8 +150,8 @@ class CBGL
     bool running_;
     bool received_start_signal_;
 
-    /* fixed-to-base tf (pose of base frame in fixed frame) */
-    tf::Transform f2b_;
+    /* fixed-to-base tf2_rclcpp (pose of base frame in fixed frame) */
+    tf2_rclcpp::Transform f2b_;
 
     /* the map */
     nav_msgs::OccupancyGrid map_;
@@ -240,17 +240,17 @@ class CBGL
      * @return void
      */
     void correctICPPose(geometry_msgs::Pose::Ptr& icp_corrected_pose,
-      const tf::Transform& f2b);
+      const tf2_rclcpp::Transform& f2b);
 
     /***************************************************************************
      * @brief Creates a transform from a 2D pose (x,y,theta)
      * @param[in] x [const double&] The x-wise coordinate of the pose
      * @param[in] y [const double&] The y-wise coordinate of the pose
      * @param[in] theta [const double&] The orientation of the pose
-     * @param[in,out] t [tf::Transform&] The returned transform
+     * @param[in,out] t [tf2_rclcpp::Transform&] The returned transform
      */
     void createTfFromXYTheta(const double& x, const double& y,
-      const double& theta, tf::Transform& t);
+      const double& theta, tf2_rclcpp::Transform& t);
 
    /****************************************************************************
     * @brief Given the amcl pose and a world scan, this function corrects
@@ -264,7 +264,7 @@ class CBGL
     */
     void doFSM(const geometry_msgs::Pose::Ptr& amcl_pose_msg,
       const sensor_msgs::LaserScan::Ptr& latest_world_scan,
-      sm_result* output, tf::Transform* f2b);
+      sm_result* output, tf2_rclcpp::Transform* f2b);
 
     /***************************************************************************
      * @brief Given the amcl pose and a world scan, this function corrects
@@ -277,7 +277,7 @@ class CBGL
      */
     void doICP(const geometry_msgs::Pose::Ptr& amcl_pose_msg,
       const sensor_msgs::LaserScan::Ptr& latest_world_scan,
-      sm_result* output, tf::Transform* f2b);
+      sm_result* output, tf2_rclcpp::Transform* f2b);
 
     /***************************************************************************
      * @brief Extracts the yaw component from the input pose's quaternion.
@@ -317,7 +317,7 @@ class CBGL
      * @return void
      */
     void handleInputPose(const geometry_msgs::Pose::Ptr& pose_msg,
-      sm_result* output, tf::Transform* f2b);
+      sm_result* output, tf2_rclcpp::Transform* f2b);
 
     /***************************************************************************
      * @brief Initializes parameters
@@ -367,11 +367,11 @@ class CBGL
 
     /***************************************************************************
      * @brief Publishes the pipeline's latest execution time.
-     * @param[in] start [const ros::Time&] The start time of the pipeline's
+     * @param[in] start [const rclcpp::Time&] The start time of the pipeline's
      * execution
-     * @param[in] end [const ros::Time&] The end time of the pipeline's execution
+     * @param[in] end [const rclcpp::Time&] The end time of the pipeline's execution
      */
-    void measureExecutionTime(const ros::Time& start, const ros::Time& end);
+    void measureExecutionTime(const rclcpp::Time& start, const rclcpp::Time& end);
 
     /***************************************************************************
      * @brief Checks if there are nan's in an input pose.
@@ -420,7 +420,7 @@ class CBGL
      * @return void
      */
     void processScan(LDP& world_scan_ldp, LDP& map_scan_ldp,
-      sm_result* output, tf::Transform* f2b);
+      sm_result* output, tf2_rclcpp::Transform* f2b);
 
     /***************************************************************************
      * For use with FSM

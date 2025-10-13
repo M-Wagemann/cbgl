@@ -7,14 +7,17 @@
  * See LICENSE.MIT for details.
  */
 #include <cbgl_node/cbgl.h>
+#include "rclcpp/rclcpp.hpp"
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "cbgl_node");
-  ros::NodeHandle nh;
-  ros::NodeHandle nh_private("~");
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("cbgl_node");
+  // ros::NodeHandle nh;
+  // ros::NodeHandle nh_private("~");
 
   CBGL cbgl(nh, nh_private);
-  ros::spin();
+  rclcpp::spin();
+  rclcpp::shutdown();
   return 0;
 }

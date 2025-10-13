@@ -43,8 +43,8 @@
 
 #include <cstdlib>
 #include <ostream>
-#include <ros/assert.h>
-#include <tf/transform_datatypes.h>
+#include <rclcpp/rclcpp.hpp>
+#include <tf2_ros/transform_datatypes.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/Polygon.h>
 #include <utils/occupancy_grid_utils/exceptions.h>
@@ -141,15 +141,15 @@ Cell indexCell (const nav_msgs::MapMetaData& info, const index_t ind)
 
 
 inline
-tf::Transform mapToWorld (const nav_msgs::MapMetaData& info)
+tf2_ros::Transform mapToWorld (const nav_msgs::MapMetaData& info)
 {
-  tf::Transform map_to_world;
-  tf::poseMsgToTF (info.origin, map_to_world);
+  tf2_ros::Transform map_to_world;
+  tf2_ros::poseMsgToTF (info.origin, map_to_world);
   return map_to_world;
 }
 
 inline
-tf::Transform worldToMap (const nav_msgs::MapMetaData& info)
+tf2_ros::Transform worldToMap (const nav_msgs::MapMetaData& info)
 {
   return mapToWorld(info).inverse();
 }
@@ -158,9 +158,9 @@ inline
 Cell pointCell (const nav_msgs::MapMetaData& info,
   const geometry_msgs::Point& p)
 {
-  tf::Point pt;
-  tf::pointMsgToTF(p, pt);
-  tf::Point p2 = worldToMap(info)*pt;
+  tf2_ros::Point pt;
+  tf2_ros::pointMsgToTF(p, pt);
+  tf2_ros::Point p2 = worldToMap(info)*pt;
   return Cell(floor(p2.x()/info.resolution), floor(p2.y()/info.resolution));
 }
 
@@ -176,7 +176,7 @@ geometry_msgs::Point cellCenter (const nav_msgs::MapMetaData& info,
   const Cell& c)
 {
   // original line:
-  // tf::Point pt((c.x+0.5)*info.resolution, (c.y+0.5)*info.resolution, 0.0);
+  // tf2_ros::Point pt((c.x+0.5)*info.resolution, (c.y+0.5)*info.resolution, 0.0);
   // COMMENTED OUT BY li9i, 2019/02/21
   // see https://answers.ros.org/question/260539/having-issues-with-the-ray-tracer-ros-package/
   // HOWEVER:
@@ -191,10 +191,10 @@ geometry_msgs::Point cellCenter (const nav_msgs::MapMetaData& info,
   // ICP:  (0.011800, 0.000811, 0.011852, 0.001299)
   // DFT:  (0.020711, 0.002289, 0.020853, 0.001299)
   // and this happens consistently. The question is why ??
-  tf::Point pt((c.x+0.5)*info.resolution, (c.y+0.5)*info.resolution, 0.0);
-  //tf::Point pt((c.x+0.001)*info.resolution, (c.y+0.001)*info.resolution, 0.0);
+  tf2_ros::Point pt((c.x+0.5)*info.resolution, (c.y+0.5)*info.resolution, 0.0);
+  //tf2_ros::Point pt((c.x+0.001)*info.resolution, (c.y+0.001)*info.resolution, 0.0);
   geometry_msgs::Point p;
-  tf::pointTFToMsg(mapToWorld(info)*pt, p);
+  tf2_ros::pointTFToMsg(mapToWorld(info)*pt, p);
   return p;
 }
 

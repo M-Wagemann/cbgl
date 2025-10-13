@@ -1,44 +1,43 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.14.4)
 project(cbgl)
 
+# C++ Standard
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 11)
 endif()
 add_compile_options(-Ofast)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  geometry_msgs
-  nav_msgs
-  message_generation
-  pcl_ros
-)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common io filters)
 
 # csm for scan--to--map-scan matching when λ < 2π
 find_package(PkgConfig)
-pkg_check_modules(csm REQUIRED csm)
+#pkg_check_modules(csm REQUIRED csm)
+# CSM lokal einbinden
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../csm EXCLUDE_FROM_ALL)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../csm/include)
+
 
 # FSM for scan--to--map-scan matching when λ = 2π
 # FSM needs CGAL
 find_package(CGAL REQUIRED)
 
-
-catkin_package(
-  CATKIN_DEPENDS
-  roscpp
-  geometry_msgs
-  nav_msgs
-  message_runtime
-  INCLUDE_DIRS include
-)
-
-include_directories(include
-  ${catkin_INCLUDE_DIRS}
-  ${csm_INCLUDE_DIRS}
+# include_directories(include
+#   ${catkin_INCLUDE_DIRS}
+#   ${csm_INCLUDE_DIRS}
+#   /usr/include/eigen3/
+# )
+# Includes
+include_directories(
+  include
+  ${PCL_INCLUDE_DIRS}
+  ${csm_LIBRARIES}
   /usr/include/eigen3/
-)
+)#  ${csm_INCLUDE_DIRS}
 
-link_directories(${csm_LIBRARY_DIRS})
 
 # Occupancy grid utils
 add_library(cbgl_og_utils_lib
@@ -63,8 +62,19 @@ add_library(cbgl_map_utils_lib
 target_link_libraries(cbgl_og_utils_lib
   cbgl_pf_utils_lib
   cbgl_map_utils_lib
-  ${catkin_LIBRARIES}
+  csm
+  ${PCL_LIBRARIES}
+) #${csm_LIBRARIES}
+
+ament_target_dependencies(cbgl_og_utils_lib
+  rclcpp
+  geometry_msgs
+  nav_msgs
+  pcl_ros
 )
 
 # cbgl
 add_subdirectory(src/cbgl_node)
+
+
+ament_package()

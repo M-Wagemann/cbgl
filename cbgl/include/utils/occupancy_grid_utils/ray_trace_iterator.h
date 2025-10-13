@@ -2,7 +2,8 @@
 #define OCCUPANCY_GRID_UTILS_RAY_TRACE_ITERATOR_H
 
 #include <utils/occupancy_grid_utils/coordinate_conversions.h>
-#include <ros/assert.h>
+#include <rclcpp/rclcpp.hpp>
+#include <cassert>
 #include <boost/iterator/iterator_facade.hpp>
 
 namespace occupancy_grid_utils
@@ -50,11 +51,14 @@ public:
       error_threshold_ = abs_dy;
     }
 
-    ROS_DEBUG_NAMED ("ray_trace_iter", "Setting up ray trace iterator from %d, %d to %d, %d",
+    
+    RCLCPP_DEBUG(rclcpp::get_logger("ray_trace_iter"), "Setting up ray trace iterator from %d, %d to %d, %d",
                      c1.x, c1.y, c2.x, c2.y);
-    ROS_DEBUG_NAMED ("ray_trace_iter", " x_inc=%d, y_inc=%d, x_correction=%d, y_correction=%d",
+    
+    RCLCPP_DEBUG(rclcpp::get_logger("ray_trace_iter"), " x_inc=%d, y_inc=%d, x_correction=%d, y_correction=%d",
                      x_inc_, y_inc_, x_correction_, y_correction_);
-    ROS_DEBUG_NAMED ("ray_trace_iter", " error=%u, error_inc=%u, error_threshold=%u",
+    
+    RCLCPP_DEBUG(rclcpp::get_logger("ray_trace_iter"), " error=%u, error_inc=%u, error_threshold=%u",
                      error_, error_inc_, error_threshold_);
   }
 
@@ -68,7 +72,13 @@ private:
 
   void increment ()
   {
-    ROS_ASSERT_MSG (!done_, "Can't increment ray trace iterator that's already reached the end");
+    if (done_) {
+      RCLCPP_ERROR(
+        rclcpp::get_logger("ray_trace_iterator"),
+        "Can't increment ray trace iterator that's already reached the end"
+      );
+      assert(!done_);
+    }
     if (cell_ == goal_) {
       done_=true;
     }
@@ -81,15 +91,23 @@ private:
         cell_.y += y_correction_;
         error_ -= error_threshold_;
       }
-      ROS_DEBUG_NAMED ("ray_trace_iter", "cell is %d, %d", cell_.x, cell_.y);
+      
+    RCLCPP_DEBUG(rclcpp::get_logger("ray_trace_iter"), "cell is %d, %d", cell_.x, cell_.y);
     }
   }
 
   const Cell& dereference () const
   {
-    ROS_ASSERT_MSG (!done_, "Can't dereference ray trace iterator that has reached the end");
-    return cell_;
+    if (done_) {
+    RCLCPP_ERROR(
+      rclcpp::get_logger("ray_trace_iterator"),
+      "Can't dereference ray trace iterator that has reached the end"
+    );
+    assert(!done_);  // bricht im Debug-Build ab
   }
+
+  return cell_;
+}
 
   bool equal (const RayTraceIterator& other) const
   {

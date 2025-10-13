@@ -7,6 +7,8 @@
  * See LICENSE.MIT for details.
  */
 #include <cbgl_node/cbgl.h>
+#include "rclcpp/rclcpp.hpp"
+#include <chrono>
 
 #define DEBUG_EXECUTION_TIMES 0
 
@@ -123,30 +125,31 @@ void CBGL::broadcast_global_pose_tf(
    */
 
   /* base <-- odom */
-  ros::Time t = ros::Time::now();
-  tf::StampedTransform odom_to_base_tf;
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  rclcpp::Time now = clock.now();
+  tf2_ros::StampedTransform odom_to_base_tf;
   try
   {
     tf_listener_.waitForTransform(base_frame_id_, odom_frame_id_,
-      t, ros::Duration(1.0));
+      t, rclcpp::Duration(1.0));
     tf_listener_.lookupTransform (base_frame_id_, odom_frame_id_,
       t, odom_to_base_tf);
   }
-  catch (tf::TransformException ex)
-  {
+  catch (tf2_ros::TransformException ex)
+  { // TODO
     ROS_WARN("[CBGL] Could not get transform from %s to %s. Error: %s",
       odom_frame_id_.c_str(), base_frame_id_.c_str(), ex.what());
   }
 
   /* map <-- base */
-  tf::Transform base_to_map_tf;
+  tf2_ros::Transform base_to_map_tf;
   createTfFromXYTheta(pose.position.x, pose.position.y, extractYawFromPose(pose),
     base_to_map_tf);
 
   /* (odom --> map) */
-  tf::Transform odom_to_map_tf = base_to_map_tf * odom_to_base_tf;
+  tf2_ros::Transform odom_to_map_tf = base_to_map_tf * odom_to_base_tf;
   tf_broadcaster_.sendTransform(
-    tf::StampedTransform(odom_to_map_tf, ros::Time::now(),
+    tf2_ros::StampedTransform(odom_to_map_tf, clock.now(),
       fixed_frame_id_, odom_frame_id_));
 }
 
@@ -216,7 +219,7 @@ CBGL::cacheFFTW3Plans(const unsigned int& sz)
 CBGL::convertMap(const nav_msgs::OccupancyGrid& map_msg)
 {
   map_t* map = map_alloc();
-  ROS_ASSERT(map);
+  assert(map);
 
   map->size_x = map_msg.info.width;
   map->size_y = map_msg.info.height;
@@ -226,7 +229,7 @@ CBGL::convertMap(const nav_msgs::OccupancyGrid& map_msg)
 
   /* Convert to player format */
   map->cells = (map_cell_t*)malloc(sizeof(map_cell_t)*map->size_x*map->size_y);
-  ROS_ASSERT(map->cells);
+  assert(map->cells);
   for(int i=0;i<map->size_x * map->size_y;i++)
   {
     if(map_msg.data[i] == 0)
@@ -338,18 +341,18 @@ void CBGL::convertMapToPNG(
   void
 CBGL::correctICPPose(
   geometry_msgs::Pose::Ptr& icp_corrected_pose,
-  const tf::Transform& f2b)
+  const tf2_ros::Transform& f2b)
 {
   if (!nanInPose(icp_corrected_pose))
   {
-    tf::Transform map_to_base_tf;
-    tf::poseMsgToTF(*icp_corrected_pose, map_to_base_tf);
+    tf2_ros::Transform map_to_base_tf;
+    tf2_ros::poseMsgToTF(*icp_corrected_pose, map_to_base_tf);
 
     /* Now express the icp-corrected amcl pose in terms of the map frame ... */
-    tf::Transform icp_corrected_pose_tf = map_to_base_tf * f2b;
+    tf2_ros::Transform icp_corrected_pose_tf = map_to_base_tf * f2b;
 
     /* ... and convert the transform into a message */
-    tf::poseTFToMsg(icp_corrected_pose_tf, *icp_corrected_pose);
+    tf2_ros::poseTFToMsg(icp_corrected_pose_tf, *icp_corrected_pose);
 
     /* Make sure the orientation is in the [-π,π] interval */
     wrapPoseOrientation(icp_corrected_pose);
@@ -366,17 +369,17 @@ CBGL::correctICPPose(
  * @param[in] x [const double&] The x-wise coordinate of the pose
  * @param[in] y [const double&] The y-wise coordinate of the pose
  * @param[in] theta [const double&] The orientation of the pose
- * @param[in,out] t [tf::Transform&] The returned transform
+ * @param[in,out] t [tf2_ros::Transform&] The returned transform
  */
   void
 CBGL::createTfFromXYTheta(
   const double& x,
   const double& y,
   const double& theta,
-  tf::Transform& t)
+  tf2_ros::Transform& t)
 {
-  t.setOrigin(tf::Vector3(x, y, 0.0));
-  tf::Quaternion q;
+  t.setOrigin(tf2_ros::Vector3(x, y, 0.0));
+  tf2_ros::Quaternion q;
   q.setRPY(0.0, 0.0, theta);
   q.normalize();
   t.setRotation(q);
@@ -396,11 +399,12 @@ CBGL::createTfFromXYTheta(
 CBGL::doFSM(
   const geometry_msgs::Pose::Ptr& amcl_pose_msg,
   const sensor_msgs::LaserScan::Ptr& latest_world_scan,
-  sm_result* output, tf::Transform* f2b)
+  sm_result* output, tf2_ros::Transform* f2b)
 {
   /* Measure execution time */
 #if DEBUG_EXECUTION_TIMES == 1
-  ros::Time start_icp = ros::Time::now();
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  rclcpp::Time start_icp = clock.now();
 #endif
 
   geometry_msgs::Pose::Ptr icp_corrected_pose =
@@ -436,7 +440,7 @@ CBGL::doFSM(
   double dt = std::get<2>(diff);
 
   /* the correction of the laser's position, in the laser frame */
-  tf::Transform corr_ch_l;
+  tf2_ros::Transform corr_ch_l;
   createTfFromXYTheta(dx,dy,dt, corr_ch_l);
 
   /* the correction of the base's position, in the base frame */
@@ -452,7 +456,7 @@ CBGL::doFSM(
 
 #if DEBUG_EXECUTION_TIMES == 1
   ROS_ERROR("doFSM() took %.2f ms",
-    (ros::Time::now() - start_icp).toSec() * 1000);
+    (clock.now() - start_icp).toSec() * 1000);
 #endif
 }
 
@@ -470,11 +474,12 @@ CBGL::doFSM(
 CBGL::doICP(
   const geometry_msgs::Pose::Ptr& amcl_pose_msg,
   const sensor_msgs::LaserScan::Ptr& latest_world_scan,
-  sm_result* output, tf::Transform* f2b)
+  sm_result* output, tf2_ros::Transform* f2b)
 {
   /* Measure execution time */
 #if DEBUG_EXECUTION_TIMES == 1
-  ros::Time start_icp = ros::Time::now();
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  rclcpp::Time start_icp = clock.now();
 #endif
 
   geometry_msgs::Pose::Ptr icp_corrected_pose =
@@ -502,7 +507,7 @@ CBGL::doICP(
 
 #if DEBUG_EXECUTION_TIMES == 1
   ROS_ERROR("doICP() took %.2f ms",
-    (ros::Time::now() - start_icp).toSec() * 1000);
+    (clock.now() - start_icp).toSec() * 1000);
 #endif
 }
 
@@ -514,13 +519,13 @@ CBGL::doICP(
   double
 CBGL::extractYawFromPose(const geometry_msgs::Pose& pose)
 {
-  tf::Quaternion q(
+  tf2_ros::Quaternion q(
     pose.orientation.x,
     pose.orientation.y,
     pose.orientation.z,
     pose.orientation.w);
 
-  tf::Matrix3x3 mat(q);
+  tf2_ros::Matrix3x3 mat(q);
   double roll, pitch, yaw;
   mat.getRPY(roll, pitch, yaw);
 
@@ -559,12 +564,14 @@ CBGL::freeArea(map_t* map)
   bool
 CBGL::getBaseToLaserTf(const std::string& frame_id)
 {
-  ros::Time t = ros::Time::now();
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  rclcpp::Time now = clock.now();
 
-  tf::StampedTransform base_to_laser_tf;
+
+  tf2_ros::StampedTransform base_to_laser_tf;
   try
   {
-    tf_listener_.waitForTransform(base_frame_id_, frame_id, t, ros::Duration(1.0));
+    tf_listener_.waitForTransform(base_frame_id_, frame_id, t, rclcpp::Duration(1.0));
 
     /*
      * The direction of the transform returned will be from the base_frame_id_
@@ -573,7 +580,7 @@ CBGL::getBaseToLaserTf(const std::string& frame_id)
      */
     tf_listener_.lookupTransform(base_frame_id_, frame_id, t, base_to_laser_tf);
   }
-  catch (tf::TransformException ex)
+  catch (tf2_ros::TransformException ex)
   {
     ROS_WARN("[CBGL] Could not get initial transform from");
     ROS_WARN("base frame to %s: %s", frame_id.c_str(), ex.what());
@@ -598,15 +605,15 @@ CBGL::getBaseToLaserTf(const std::string& frame_id)
 CBGL::getCurrentLaserPose(const geometry_msgs::Pose& robot_pose)
 {
   /* Transform the robot_pose to a transform */
-  tf::Transform map_to_base_tf;
-  tf::poseMsgToTF(robot_pose, map_to_base_tf);
+  tf2_ros::Transform map_to_base_tf;
+  tf2_ros::poseMsgToTF(robot_pose, map_to_base_tf);
 
   /* Get the laser's pose in the map frame (as a transform) */
-  tf::Transform map_to_laser_tf = map_to_base_tf * base_to_laser_;
+  tf2_ros::Transform map_to_laser_tf = map_to_base_tf * base_to_laser_;
 
   /* Convert the transform into a message */
   geometry_msgs::Pose laser_pose;
-  tf::poseTFToMsg(map_to_laser_tf, laser_pose);
+  tf2_ros::poseTFToMsg(map_to_laser_tf, laser_pose);
 
   /* Return the laser's pose */
   return laser_pose;
@@ -620,7 +627,7 @@ CBGL::getCurrentLaserPose(const geometry_msgs::Pose& robot_pose)
  */
   void
 CBGL::handleInputPose(const geometry_msgs::Pose::Ptr& pose_msg,
-  sm_result* output, tf::Transform* f2b)
+  sm_result* output, tf2_ros::Transform* f2b)
 {
   /* Return if the pose received from amcl contains nan's */
   if (nanInPose(pose_msg))
@@ -1363,10 +1370,10 @@ CBGL::mapCallback(const nav_msgs::OccupancyGrid& map_msg)
  */
   void
 CBGL::measureExecutionTime(
-  const ros::Time& start,
-  const ros::Time& end)
+  const rclcpp::Time& start,
+  const rclcpp::Time& end)
 {
-  ros::Duration d = end-start;
+  rclcpp::Duration d = end-start;
   std_msgs::Duration duration_msg;
   duration_msg.data = d;
   execution_time_publisher_.publish(duration_msg);
@@ -1458,7 +1465,8 @@ CBGL::poseCloudCallback(
  */
 void CBGL::processPoseCloud()
 {
-  ros::Time start = ros::Time::now();
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  rclcpp::Time now = clock.now();
 
   /*
    * Construct the 3rd-party ray-casters AFTER both a scan and the map is
@@ -1479,7 +1487,7 @@ void CBGL::processPoseCloud()
   if (publish_pose_sets_)
   {
     geometry_msgs::PoseArray pa1;
-    pa1.header.stamp = ros::Time::now();
+    pa1.header.stamp = clock.now();
     std::vector<geometry_msgs::Pose> pv1;
     for (unsigned int i = 0; i < dispersed_particles_.size(); i++)
       pv1.push_back(*dispersed_particles_[i]);
@@ -1498,7 +1506,7 @@ void CBGL::processPoseCloud()
   if (publish_pose_sets_)
   {
     geometry_msgs::PoseArray pa2;
-    pa2.header.stamp = ros::Time::now();
+    pa2.header.stamp = clock.now();
     std::vector<geometry_msgs::Pose> pv2;
     for (unsigned int i = 0; i < caer_best_particles.size(); i++)
       pv2.push_back(*caer_best_particles[i]);
@@ -1508,7 +1516,7 @@ void CBGL::processPoseCloud()
 
   /* After CAER phase: scan--to--map-scan match the top X best hypotheses */
   std::vector<sm_result> outputs;
-  std::vector<tf::Transform> f2bs;
+  std::vector<tf2_ros::Transform> f2bs;
   double score = -1.0;
   double score_i = -1.0;
   int score_idx = -1;
@@ -1521,7 +1529,7 @@ void CBGL::processPoseCloud()
       extractYawFromPose(*caer_best_particles[i]));
 
     sm_result output;
-    tf::Transform f2b;
+    tf2_ros::Transform f2b;
     handleInputPose(caer_best_particles[i], &output, &f2b);
 
     outputs.push_back(output);
@@ -1581,7 +1589,7 @@ void CBGL::processPoseCloud()
     ROS_ERROR("[CBGL] No valid pose found");
 
   /* Publish execution time */
-  measureExecutionTime(start, ros::Time::now());
+  measureExecutionTime(start, clock.now());
 
   /* Publish global pose */
   geometry_msgs::PoseWithCovarianceStamped global_pose_wcs;
@@ -1592,7 +1600,7 @@ void CBGL::processPoseCloud()
   covar[6*1+1] = initial_cov_yy_;
   covar[6*5+5] = initial_cov_aa_;
   global_pose_wcs.pose.covariance =  covar;
-  global_pose_wcs.header.stamp = ros::Time::now();
+  global_pose_wcs.header.stamp = clock.now();
   global_pose_wcs.header.frame_id = "/map";
   global_pose_publisher_.publish(global_pose_wcs);
 
@@ -1620,9 +1628,10 @@ void CBGL::processPoseCloud()
  */
   void
 CBGL::processScan(LDP& world_scan_ldp, LDP& map_scan_ldp,
-  sm_result* output, tf::Transform* f2b)
+  sm_result* output, tf2_ros::Transform* f2b)
 {
-  ros::WallTime start = ros::WallTime::now();
+
+  auto start = std::chrono::system_clock::now();
 
   /*
    * CSM is used in the following way:
@@ -1630,7 +1639,7 @@ CBGL::processScan(LDP& world_scan_ldp, LDP& map_scan_ldp,
    * The reference scan (prevLDPcan_) has a pose of [0, 0, 0]
    * The new scan (currLDPScan) has a pose equal to the movement
    * of the laser in the laser frame since the last scan
-   * The computed correction is then propagated using the tf machinery
+   * The computed correction is then propagated using the tf2_ros machinery
    */
 
   map_scan_ldp->odometry[0] = 0.0;
@@ -1677,7 +1686,7 @@ CBGL::processScan(LDP& world_scan_ldp, LDP& map_scan_ldp,
   if (output_.valid)
   {
     /* the correction of the laser's position, in the laser frame */
-    tf::Transform corr_ch_l;
+    tf2_ros::Transform corr_ch_l;
     createTfFromXYTheta(output_.x[0], output_.x[1], output_.x[2], corr_ch_l);
 
     /* the correction of the base's position, in the base frame */
@@ -1773,7 +1782,7 @@ CBGL::scanCallback(
   /* if first scan cache needed stuff --------------------------------------- */
   if (!received_scan_)
   {
-    /* cache the static tf from base to laser if output is required as transform */
+    /* cache the static tf2_ros from base to laser if output is required as transform */
     if (tf_broadcast_)
     {
       if (!getBaseToLaserTf(s_->header.frame_id))
@@ -1813,7 +1822,9 @@ CBGL::scanMap(
   const bool& do_fill_map_scan)
 {
 #if DEBUG_EXECUTION_TIMES == 1
-  ros::Time start = ros::Time::now();
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  rclcpp::Time now = clock.now();
+
 #endif
 
   /*
@@ -1907,8 +1918,8 @@ CBGL::scanMap(
     map_scan = occupancy_grid_utils::simulateRangeScan(map_, current_laser_pose,
       *laser_scan_info);
   }
-
-  map_scan->header.stamp = ros::Time::now();
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  map_scan->header.stamp = clock.now();
 
 #if DEBUG_EXECUTION_TIMES == 1
   ROS_ERROR("scanMap() took %.2f ms", (ros::Time::now() - start).toSec() * 1000);
@@ -2022,8 +2033,8 @@ CBGL::scanMapPanoramic(
     map_scan = occupancy_grid_utils::simulateRangeScan(map_, current_laser_pose,
       *laser_scan_info);
   }
-
-  map_scan->header.stamp = ros::Time::now();
+  clcpp::Clock clock(RCL_ROS_TIME);
+  map_scan->header.stamp = clock.now();
 
   return map_scan;
 }
@@ -2051,7 +2062,7 @@ CBGL::siftThroughCAERPanoramic(
     /* This hypothesis' orientation */
     const double yaw_i = extractYawFromPose(*init_hypotheses[i]);
     double new_yaw_i = 0.0;
-    tf::Quaternion q;
+    tf2_ros::Quaternion q;
 
     /* Extract only ranges */
     const std::vector<float> r_i = sv_i->ranges;
@@ -2080,7 +2091,7 @@ CBGL::siftThroughCAERPanoramic(
       new_yaw_i = yaw_i - 2*M_PI * static_cast<double>(k)/da_;
       wrapAngle(new_yaw_i);
       q.setRPY(0.0, 0.0, new_yaw_i); q.normalize();
-      tf::quaternionTFToMsg(q, pose_ik->orientation);
+      tf2_ros::quaternionTFToMsg(q, pose_ik->orientation);
 
       /* The full hypothesis */
       all_hypotheses.push_back(pose_ik);
@@ -2155,8 +2166,10 @@ CBGL::startSignalService(
   std_srvs::Empty::Request& req,
   std_srvs::Empty::Response& res)
 {
-  while (received_start_signal_)
-    ros::Duration(1).sleep();
+  while (received_start_signal_){
+    rclcpp::Rate rate(1.0); 
+    rate.sleep();
+  }
 
   if (!received_map_)
   {
@@ -2174,7 +2187,8 @@ CBGL::startSignalService(
 
   geometry_msgs::PoseArray::Ptr pose_cloud_msg =
     boost::make_shared<geometry_msgs::PoseArray>();
-  pose_cloud_msg->header.stamp = ros::Time::now();
+  rclcpp::Clock clock(RCL_ROS_TIME);
+  pose_cloud_msg->header.stamp = clock.now();
   pose_cloud_msg->header.frame_id = fixed_frame_id_;
   pose_cloud_msg->poses.resize(set->sample_count);
 
@@ -2184,10 +2198,10 @@ CBGL::startSignalService(
     pose_cloud_msg->poses[i].position.y = set->samples[i].pose.v[1];
     pose_cloud_msg->poses[i].position.z = 0;
 
-    tf::Quaternion q;
+    tf2_ros::Quaternion q;
     q.setRPY(0, 0, set->samples[i].pose.v[2]);
     q.normalize();
-    tf::quaternionTFToMsg(q, pose_cloud_msg->poses[i].orientation);
+    tf2_ros::quaternionTFToMsg(q, pose_cloud_msg->poses[i].orientation);
 
     /*
      * ROS_ERROR("(%f,%f)",
@@ -2276,8 +2290,8 @@ CBGL::wrapPoseOrientation(
   /* ... and wrap between [-π, π] */
   wrapAngle(yaw);
 
-  tf::Quaternion q;
+  tf2_ros::Quaternion q;
   q.setRPY(0.0, 0.0, yaw);
   q.normalize();
-  tf::quaternionTFToMsg(q, pose->orientation);
+  tf2_ros::quaternionTFToMsg(q, pose->orientation);
 }

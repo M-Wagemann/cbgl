@@ -39,5 +39,5 @@ add_executable(particle_filter_rangelibc ${SRCS})
 target_link_libraries(particle_filter_rangelibc gflags pthread)
 
 add_dependencies(particle_filter_rangelibc
-  ${catkin_EXPORTED_TARGETS}
+  ${csm_EXPORTED_TARGETS}
 )
