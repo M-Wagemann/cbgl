@@ -1,0 +1,13 @@
+cff-version: 1.2.1
+preferred-citation:
+  title: "CBGL: Fast Monte Carlo Passive Global Localisation of 2D LIDAR Sensor"
+  doi: "10.1109/IROS58592.2024.10802235"
+  year: "2024"
+  type: inproceedings
+  conference: "2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)"
+  pages: "3268-3275"
+  url: https://doi.org/10.1109/IROS58592.2024.10802235
+  codeurl: https://github.com/cbgl/cbgl
+  authors:
+    - family-names: Filotheou
+      given-names: Alexandros
